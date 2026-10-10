@@ -22,7 +22,17 @@ Codex / Claude / Cursor / custom clients
 
 ## HTTP defaults
 
-The first local HTTP mode should bind to `127.0.0.1`, expose `/mcp`, reject invalid `Origin` values and require explicit authentication when listening beyond loopback. Streamable HTTP is an MCP transport, not a replacement for a future REST adapter.
+The first local HTTP mode should bind to `127.0.0.1` and expose `/mcp`. It targets the MCP `2026-07-28` protocol revision; compatibility with older clients is an adapter concern and unsupported revisions must fail clearly. Every HTTP request must pass `Origin` validation. An unauthenticated loopback mode is allowed only as an explicit single-user configuration. Multi-client or multi-workspace mode requires authentication on every request and operation, server-established client identity and authorization for the requested workspace. Listening beyond loopback additionally requires TLS and an access-control model. Streamable HTTP is an MCP transport, not a replacement for a future REST adapter.
+
+## Memory lifecycle semantics
+
+The MVP uses these deliberately separate meanings:
+
+- `forget` performs a logical hide/tombstone: active retrieval indexes suppress the item, tombstone metadata and the revision remain available to authorized history queries, and exports/backups follow the configured retention policy. It does not promise physical erasure.
+- Superseding a fact creates a newer revision and preserves the previous revision and provenance.
+- Physical erasure is a separate future administrative operation. Its contract must define removal from active indexes, history, exports and backups before it is exposed.
+
+This distinction prevents a caller from confusing search visibility with deletion obligations.
 
 ## stdio rules
 

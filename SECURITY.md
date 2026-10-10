@@ -6,7 +6,7 @@ The repository is an early scaffold. Until a first release is tagged, report sec
 
 ## Reporting a vulnerability
 
-Do not post credentials, exploit details or customer data in a public issue. Prefer a private security channel configured for the repository owner. If no private channel is available, open a minimal issue asking for a secure contact and do not include the vulnerability details.
+Do not post credentials, exploit details or customer data in a public issue. Repository maintainers should enable GitHub Private Vulnerability Reporting and use it for security reports. If that private channel is temporarily unavailable, contact the repository owner through a private channel and include only enough public information to request secure coordination.
 
 Please include the affected component, reproduction steps, impact and a suggested mitigation when safe to do so.
 

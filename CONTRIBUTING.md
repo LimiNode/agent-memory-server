@@ -12,6 +12,6 @@ The project is early and the public boundary is intentionally small. Before impl
 
 ## Rights and dependencies
 
-By contributing, you confirm that you have the right to submit the work and that dependencies are compatible with AGPL-3.0. A formal DCO/CLA policy will be added before accepting contributions intended for commercial relicensing.
+By contributing, you confirm that you have the right to submit the work and that dependencies are compatible with AGPL-3.0. External source-code contributions will be merged only after the project has established and published a contributor-rights process compatible with its dual-licensing strategy. Until then, maintainers may accept documentation-only changes that do not create new licensing dependencies.
 
 Do not submit credentials, customer data, proprietary code or generated files containing secrets.
