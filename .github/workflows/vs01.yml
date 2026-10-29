@@ -1,0 +1,75 @@
+name: VS-01 validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  CORE_SHA: 4018fb124b9da21814f82c2b90706bed87991cfc
+
+jobs:
+  docs-and-default-config:
+    name: Docs and default CMake configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout server
+        uses: actions/checkout@v4
+      - name: Check patch whitespace
+        shell: bash
+        run: |
+          git diff-tree --check --no-commit-id -r HEAD
+          test -f docs/vs-01-core-api-audit.md
+          test -f docs/vs-01-memory-service-contract.md
+          grep -q '4018fb124b9da21814f82c2b90706bed87991cfc' docs/vs-01-core-api-audit.md
+      - name: Configure default profile
+        run: cmake -S . -B build-default -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+  linux-smoke:
+    name: Linux MDBX smoke (pinned core)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout server
+        uses: actions/checkout@v4
+      - name: Checkout audited core
+        uses: actions/checkout@v4
+        with:
+          repository: LimiNode/agent-memory-cpp
+          ref: ${{ env.CORE_SHA }}
+          path: agent-memory-cpp
+          submodules: recursive
+          fetch-depth: 1
+      - name: Configure pinned smoke
+        run: >-
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          -DVS01_BUILD_CORE_SMOKE=ON
+          -DAGENT_MEMORY_CPP_SOURCE_DIR=${{ github.workspace }}/agent-memory-cpp
+      - name: Build smoke target
+        run: cmake --build build --parallel
+      - name: Run registered tests
+        run: ctest --test-dir build --output-on-failure --no-tests=error
+
+  windows-smoke:
+    name: Windows MDBX smoke (MSVC, pinned core)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout server
+        uses: actions/checkout@v4
+      - name: Checkout audited core
+        uses: actions/checkout@v4
+        with:
+          repository: LimiNode/agent-memory-cpp
+          ref: ${{ env.CORE_SHA }}
+          path: agent-memory-cpp
+          submodules: recursive
+          fetch-depth: 1
+      - name: Configure pinned smoke
+        shell: pwsh
+        run: >-
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          -DVS01_BUILD_CORE_SMOKE=ON
+          -DAGENT_MEMORY_CPP_SOURCE_DIR=${{ github.workspace }}\agent-memory-cpp
+      - name: Build smoke target
+        run: cmake --build build --config Release --parallel
+      - name: Run registered tests
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error

@@ -70,10 +70,34 @@ limit: 1..1024 (the core importer bound)
 ```
 
 Each result contains `resource_id`, `source_uri`, `generation`, canonical text
-and the lexical score. The service may attach manifest digest/provenance by
-looking up the same `ResourceId`; it must not invent provenance fields when no
-manifest is available. Results are limited to the selected scope and active,
-importer-visible manifests.
+and the lexical score. Results are limited to the selected scope and active,
+importer-visible manifests. Manifest digest/provenance is not automatically
+safe to attach: the core lookup is global by `ResourceId`, not qualified by
+scope.
+
+### Manifest admission and enrichment
+
+Before touching storage, the service establishes the workspace placement and
+the permitted in-process scope. A caller-supplied `scope_id` is never an
+authorization decision. For a search result, optional manifest enrichment is
+allowed only when all of these values agree with the trusted request context and
+the hit:
+
+```text
+workspace placement
+scope ownership
+resource_id
+generation
+active publication state
+```
+
+The service must maintain or obtain an explicit trusted ownership mapping for
+`ResourceId` to workspace/scope; `find_manifest(ResourceId)` alone cannot prove
+that mapping. If the mapping is absent, identities differ, generation changed,
+or publication is pending/inactive, the service must omit the enrichment or
+fail closed. It must never attach a newer manifest to an older hit. A bounded
+retry is acceptable, but VS-01 does not promise a cross-call snapshot-atomic
+read.
 
 ## Error model
 
@@ -115,7 +139,9 @@ The operation calls importer-aware lexical search with a bounded limit. It
 returns only active importer-visible results in the selected scope. A pending
 update is hidden until manifest publication completes. The service must not
 return low-level raw staging rows, stale lexical hits or results from another
-workspace.
+workspace. Any manifest enrichment follows the admission rules above; if those
+rules cannot be satisfied, the result remains un-enriched or the operation
+fails closed.
 
 ### `get_history`, `forget`, `validate_source`
 
@@ -134,10 +160,14 @@ exist:
 ## Security boundary
 
 VS-01 has no HTTP or MCP endpoint. Future adapters must enforce authentication
-before workspace resolution, use server-established client identity, validate
-HTTP `Origin`, default network listeners to loopback, and keep stdio protocol
-messages on stdout with diagnostics on stderr. Workspace routing is a storage
-selection mechanism, not an authorization decision.
+before workspace resolution, use server-established client identity and keep
+workspace authorization independent from `scope_id`. For HTTP, a present but
+invalid `Origin` must be rejected; an absent `Origin` is a separate case that
+may be valid for native clients depending on the declared transport and
+authentication profile. Missing `Origin` never replaces authentication or
+workspace authorization. Network listeners default to loopback, and stdio
+protocol messages stay on stdout with diagnostics on stderr. Workspace routing
+is a storage selection mechanism, not an authorization decision.
 
 ## Acceptance for VS-02
 

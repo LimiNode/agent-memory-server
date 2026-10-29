@@ -22,7 +22,7 @@ Codex / Claude / Cursor / custom clients
 
 ## HTTP defaults
 
-The first local HTTP mode should bind to `127.0.0.1` and expose `/mcp`. It targets the MCP `2026-07-28` protocol revision; compatibility with older clients is an adapter concern and unsupported revisions must fail clearly. Every HTTP request must pass `Origin` validation. An unauthenticated loopback mode is allowed only as an explicit single-user configuration. Multi-client or multi-workspace mode requires authentication on every request and operation, server-established client identity and authorization for the requested workspace. Listening beyond loopback additionally requires TLS and an access-control model. Streamable HTTP is an MCP transport, not a replacement for a future REST adapter.
+The first local HTTP mode should bind to `127.0.0.1` and expose `/mcp`. It targets the MCP `2026-07-28` protocol revision; compatibility with older clients is an adapter concern and unsupported revisions must fail clearly. A present invalid `Origin` must be rejected; an absent `Origin` is a separate case because native clients may omit it. Whether an absent header is accepted depends on the declared transport and authentication profile, and it never replaces authentication or workspace authorization. An unauthenticated loopback mode is allowed only as an explicit single-user configuration. Multi-client or multi-workspace mode requires authentication on every request and operation, server-established client identity and authorization for the requested workspace. Listening beyond loopback additionally requires TLS and an access-control model. Streamable HTTP is an MCP transport, not a replacement for a future REST adapter.
 
 ## Memory lifecycle semantics
 

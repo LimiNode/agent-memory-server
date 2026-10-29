@@ -93,21 +93,31 @@ server baseline.
 
 ## Capability matrix
 
-Status meanings: **Ready** means the selected profile can implement the
-operation without inventing storage semantics; **Limited** means a narrow,
-explicit subset is possible; **Blocked** means the requested operation would be
+Status meanings: **Core-ready (restricted)** means the selected core APIs are
+sufficient to implement a deliberately limited service operation; it does not
+mean that a production service endpoint, transport, authorization policy or
+multi-client deployment already exists. **Limited** means a narrow, explicit
+subset is possible; **Blocked** means the requested operation would be
 misleading or unsafe with the current public API.
 
 | Service operation | Core API used by the selected `LexicalOnly` profile | Implemented evidence | Missing or unsafe part | Guarantee we can make now | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `remember` | `MdbxResourceImporter::import(ObservedResource)` | Validates and publishes a resource revision; returns generation, digest/provenance metadata and stable IDs. Recovery and reopen are tested. | No server auth, transport or policy layer yet. | Durable publish of one UTF-8 source revision, with stable `ResourceId`, scope and generation semantics. | **Ready** |
-| `search` | `MdbxResourceImporter::search(scope, query, limit)` plus `find_manifest` | Deterministic lexical search over importer-visible resources; pending publications are hidden; limit is bounded. | No dense/hybrid ranking, history view or authorization. | Scope-local active lexical results with source URI, resource ID and generation; stale pending revisions are not returned as active results. | **Ready** |
+| `remember` | `MdbxResourceImporter::import(ObservedResource)` | Validates and publishes a resource revision; returns generation, digest/provenance metadata and stable IDs. Recovery and reopen are tested. | No server auth, transport or policy layer yet. | Durable publish of one UTF-8 source revision, with stable `ResourceId`, scope and generation semantics. | **Core-ready (restricted)** |
+| `search` | `MdbxResourceImporter::search(scope, query, limit)` plus `find_manifest` | Deterministic lexical search over importer-visible resources; pending publications are hidden; limit is bounded. | No dense/hybrid ranking, history view or authorization. Manifest enrichment is only valid after the admission checks in the service contract. | Scope-local active lexical results with source URI, resource ID and generation; stale pending revisions are not returned as active results. | **Core-ready (restricted)** |
 | `get_history` | `MdbxCanonicalContentStore::read_revision` (known revision only); projection `list` is diagnostic | Individual known revisions can be read; projection revisions can be listed. | No API enumerates all revisions for a resource; no complete resource-level provenance history query. | Only “read this already-known revision”, not a history list. | **Blocked** |
 | `forget` | `MdbxResourceManifestStorage::erase_manifest` / store erases | Physical manifest/envelope/projection deletion exists and is idempotent. | No atomic logical tombstone that suppresses search while retaining authorized history; physical erase is not equivalent. | No public forget guarantee. | **Blocked** |
 | `validate_source` | `ResourceRevision::body_digest`, generation and provenance in `find_manifest` | Stored metadata can be inspected and compared when a caller already supplies the same source bytes/digest. | No source connector, URI re-fetch, or service operation that performs the comparison; URI changes are metadata, not proof of current external content. | At most metadata inspection; no external freshness claim. | **Limited** |
 
 The matrix deliberately does not promote a low-level delete or a known-revision
 read into a stronger service promise.
+
+The selected core baseline does not provide a scope-qualified
+`find_manifest(ResourceId)` method. Therefore a future service must not disclose
+manifest metadata merely because a caller knows a globally unique ID. A search
+hit may be enriched only when the trusted workspace placement, scope ownership,
+resource ID, generation and active publication state all match; otherwise the
+metadata is omitted or the read fails closed. This is a service admission rule,
+not an authorization feature supplied by the core.
 
 ## Selected profile
 
@@ -158,17 +168,34 @@ The opt-in server smoke harness in `CMakeLists.txt` and
 subdirectory, links the public `agent_memory::agent_memory` target and enables
 MDBX without copying core sources into this repository. It was configured with:
 
+From clean checkouts, the replayable pinned-baseline sequence is:
+
 ```text
-cmake -S . -B .build/vs01 -DCMAKE_BUILD_TYPE=Release \
-  -DAGENT_MEMORY_ENABLE_MDBX=ON \
-  -DAGENT_MEMORY_MDBX_DEPS_MODE=BUNDLED \
-  -DAGENT_MEMORY_BUILD_TESTS=OFF -DAGENT_MEMORY_BUILD_EXAMPLES=OFF \
-  -DAGENT_MEMORY_ENABLE_JSON=OFF
+git clone https://github.com/LimiNode/agent-memory-server.git
+cd agent-memory-server
+git checkout vs-01-core-api-audit
+git rev-parse HEAD  # record the exact server PR HEAD in the review report
+git clone https://github.com/LimiNode/agent-memory-cpp.git ../agent-memory-cpp
+git -C ../agent-memory-cpp checkout 4018fb124b9da21814f82c2b90706bed87991cfc
+git -C ../agent-memory-cpp submodule update --init --recursive
+cmake -S . -B .build/vs01 -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DVS01_BUILD_CORE_SMOKE=ON \
+  -DAGENT_MEMORY_CPP_SOURCE_DIR=../agent-memory-cpp
+cmake --build .build/vs01 --parallel
+ctest --test-dir .build/vs01 --output-on-failure --no-tests=error
 ```
+
+The audited core SHA, C++17 requirement, Ninja generator, MDBX-enabled
+`BUNDLED` dependency mode and disabled core tests/examples/JSON are configured
+by the opt-in smoke profile. The smoke configuration also accepts
+`VS01_USE_EXISTING_CORE_TARGET=ON` when a parent build already provides an
+MDBX-enabled `agent_memory::agent_memory` target; it then skips core source and
+dependency ownership instead of adding a duplicate target.
 
 The exact audit checkout first needed its pinned git submodules initialized. With
 those dependencies present, CMake configure, build and CTest all passed on the
-Windows MinGW toolchain:
+Windows MinGW toolchain (`MinGW-W64 x86_64-ucrt-posix-seh 16.1.0`, Ninja
+1.13.2, CMake 4.3.3):
 
 ```text
 1/1 Test #1: agent_memory_server_vs01_core_smoke ... Passed
@@ -179,6 +206,13 @@ The smoke test proves compile/link, fresh import/search, process-style object
 destruction, reopen/search, generation increment and stale-term removal. It is
 deliberately opt-in because the server repository does not vendor the core or
 its MDBX submodules. No production `MemoryService` is introduced in VS-01.
+
+The reproducible CI workflow is
+`.github/workflows/vs01.yml`. It runs the default configuration, a Linux MDBX
+smoke lane and a Windows MSVC MDBX smoke lane, each checking out the exact core
+SHA and recursive submodules and failing when CTest registers zero tests. The
+local MinGW result above remains additional evidence; the hosted Windows lane
+does not claim MinGW coverage.
 
 ## VS-02 recommendation
 
