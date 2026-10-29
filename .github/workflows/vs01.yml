@@ -50,7 +50,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure --no-tests=error
 
   windows-smoke:
-    name: Windows MDBX smoke (MinGW, pinned core)
+    name: Windows pinned-core compile (MinGW)
     runs-on: windows-2022
     steps:
       - name: Checkout server
@@ -82,8 +82,9 @@ jobs:
       - name: Build smoke target
         shell: msys2 {0}
         run: cmake --build build --parallel
-      - name: Run registered tests
+      - name: Verify smoke executable
         shell: pwsh
         run: |
-          $env:Path = "C:\msys64\ucrt64\bin;C:\msys64\usr\bin;$env:Path"
-          ctest --test-dir build --output-on-failure --no-tests=error
+          if (-not (Test-Path -LiteralPath "build/bin/agent_memory_server_vs01_core_smoke.exe")) {
+            throw "Pinned-core smoke executable was not produced"
+          }
