@@ -209,9 +209,10 @@ its MDBX submodules. No production `MemoryService` is introduced in VS-01.
 
 The reproducible CI workflow is
 `.github/workflows/vs01.yml`. It runs the default configuration, a Linux MDBX
-smoke lane and a Windows MinGW MDBX smoke lane, each checking out the exact core
+smoke lane and a Windows UCRT64/MinGW MDBX smoke lane, each checking out the exact core
 SHA and recursive submodules and failing when CTest registers zero tests. The
-local MinGW result above is the same toolchain family used by the hosted lane.
+local MinGW result above is the same toolchain family used by the hosted lane
+(the hosted runner uses the modern MSYS2 UCRT64 environment).
 MSVC compatibility is not claimed here: the pinned `mdbx-containers` checkout
 currently fails under MSVC in its `KeyValueTable::retrieve_all` template path,
 so this workflow intentionally validates the supported MinGW configuration.

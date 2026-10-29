@@ -63,15 +63,15 @@ jobs:
           path: agent-memory-cpp
           submodules: recursive
           fetch-depth: 1
-      - name: Set up MSYS2 MinGW64
+      - name: Set up MSYS2 UCRT64
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-ninja
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-ninja
       - name: Configure pinned smoke
         shell: msys2 {0}
         run: |
@@ -85,5 +85,5 @@ jobs:
       - name: Run registered tests
         shell: pwsh
         run: |
-          $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:Path"
+          $env:Path = "C:\msys64\ucrt64\bin;C:\msys64\usr\bin;$env:Path"
           ctest --test-dir build --output-on-failure --no-tests=error
