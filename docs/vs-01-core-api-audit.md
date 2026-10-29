@@ -212,7 +212,8 @@ The reproducible CI workflow is
 smoke lane and a Windows MSVC MDBX smoke lane, each checking out the exact core
 SHA and recursive submodules and failing when CTest registers zero tests. The
 local MinGW result above remains additional evidence; the hosted Windows lane
-does not claim MinGW coverage.
+does not claim MinGW coverage. The MSVC lane enables `/Zc:__cplusplus`, which
+the pinned MDBX dependency requires for standard-compliant `__cplusplus` values.
 
 ## VS-02 recommendation
 
