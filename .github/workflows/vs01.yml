@@ -11,10 +11,10 @@ env:
 jobs:
   docs-and-default-config:
     name: Docs and default CMake configuration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout server
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Check patch whitespace
         shell: bash
         run: |
@@ -27,12 +27,12 @@ jobs:
 
   linux-smoke:
     name: Linux MDBX smoke (pinned core)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout server
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Checkout audited core
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: LimiNode/agent-memory-cpp
           ref: ${{ env.CORE_SHA }}
@@ -51,12 +51,12 @@ jobs:
 
   windows-smoke:
     name: Windows MDBX smoke (MSVC, pinned core)
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout server
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Checkout audited core
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: LimiNode/agent-memory-cpp
           ref: ${{ env.CORE_SHA }}
