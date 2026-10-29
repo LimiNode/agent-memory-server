@@ -191,7 +191,10 @@ int main() {
         if(!verify_existing_directory_is_not_claimed(temporary->path())) {
             return fail("temporary directory ownership regression failed");
         }
-        const auto& path = temporary->path();
+        // The audited core opens MDBX with `no_subdir=true`, so the option is
+        // a database file path. Keep the process-owned directory as the
+        // cleanup boundary, but place the actual environment in a child file.
+        const auto path = temporary->path() / "memory.mdbx";
         {
             MdbxResourceImporter importer{options(path)};
             const auto result = importer.import(resource("first durable decision"));
