@@ -50,7 +50,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure --no-tests=error
 
   windows-smoke:
-    name: Windows MDBX smoke (MSVC, pinned core)
+    name: Windows MDBX smoke (MinGW, pinned core)
     runs-on: windows-2022
     steps:
       - name: Checkout server
@@ -63,14 +63,25 @@ jobs:
           path: agent-memory-cpp
           submodules: recursive
           fetch-depth: 1
+      - name: Set up MSYS2 MinGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-ninja
       - name: Configure pinned smoke
-        shell: pwsh
-        run: >-
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-          -DVS01_BUILD_CORE_SMOKE=ON
-          -DAGENT_MEMORY_CPP_SOURCE_DIR=${{ github.workspace }}\agent-memory-cpp
-          '-DCMAKE_CXX_FLAGS=/Zc:__cplusplus /DNOMINMAX /EHsc'
+        shell: msys2 {0}
+        run: |
+          CORE_PATH="$(cygpath -u "$GITHUB_WORKSPACE/agent-memory-cpp")"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DVS01_BUILD_CORE_SMOKE=ON \
+            -DAGENT_MEMORY_CPP_SOURCE_DIR="$CORE_PATH"
       - name: Build smoke target
-        run: cmake --build build --config Release --parallel
+        shell: msys2 {0}
+        run: cmake --build build --parallel
       - name: Run registered tests
-        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error
+        shell: msys2 {0}
+        run: ctest --test-dir build --output-on-failure --no-tests=error
