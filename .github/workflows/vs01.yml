@@ -83,5 +83,7 @@ jobs:
         shell: msys2 {0}
         run: cmake --build build --parallel
       - name: Run registered tests
-        shell: msys2 {0}
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        shell: pwsh
+        run: |
+          $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:Path"
+          ctest --test-dir build --output-on-failure --no-tests=error
